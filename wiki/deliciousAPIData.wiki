@@ -1,5 +1,5 @@
+#summary Some notes on the del.icio.us v1 API, expected and returned data
 #labels Phase-Implementation
-# Some notes on the del.icio.us v1 API, expected and returned data
 
 = del.icio.us API =
 
