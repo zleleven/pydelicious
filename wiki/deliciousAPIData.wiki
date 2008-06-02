@@ -4,10 +4,10 @@
 = del.icio.us API =
 
 The version 1 API:
- * 12 functions; 5 to change and 7 to retrieve data
- * all calls via HTTP GET
- * all answers in XML
- * document root elements: posts, tags, bundles, dates, update and result.
+ * supports 12 different calls; 5 to change and 7 to retrieve data
+ * does all calls via HTTP GET
+ * returns all answers in XML
+ * uses XML root elements: posts, tags, bundles, dates, update and result.
  * [I/O Encoding unknown, waiting for customer service to respond.]
 
 The del.icio.us API documention is found at http://del.icio.us/help/api/. 
@@ -24,7 +24,7 @@ Inconsistencies in structure and between documentation and implementation.
   
 *posts/get, posts/all, posts/recent*
 
-    Three functions returning the same XML elements, but each time with different attributes on the document root node (<posts/>). Only common attribute is user.
+    Three functions returning the same XML elements (`<posts><post ...`), but each time with different attributes on the document root node. Only common attribute is user.
 
 *posts/all*
 
