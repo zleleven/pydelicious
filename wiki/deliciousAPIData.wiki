@@ -8,8 +8,12 @@ The version 1 API:
  * all calls via HTTP GET
  * all answers in XML
  * document root elements: posts, tags, bundles, dates, update and result.
+ * [I/O Encoding unknown, waiting for customer service to respond.]
 
-For detailed diagram see [http://www.dotmpe.com/note/del-icio-us del.icio.us API]
+The del.icio.us API documention is found at http://del.icio.us/help/api/. 
+Erreta are given in the details section below.
+
+For a detailed diagram of API paths and result XML see [http://www.dotmpe.com/note/del-icio-us del.icio.us API @ dotmpe.com]
 
 = Details =
 Inconsistencies in structure and between documentation and implementation.
@@ -20,7 +24,7 @@ Inconsistencies in structure and between documentation and implementation.
   
 *posts/get, posts/all, posts/recent*
 
-    Three functions returning the same XML elements, but each time with different attributes on the document root node. Only common attribute is user.
+    Three functions returning the same XML elements, but each time with different attributes on the document root node (<posts/>). Only common attribute is user.
 
 *posts/all*
 
