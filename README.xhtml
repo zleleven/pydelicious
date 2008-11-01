@@ -302,12 +302,7 @@ ul.auto-toc {
 
     <p>Basicly, a Python library to access del.icio.us. Includes shell utility to manage a local collection of bookmarks.</p>
 
-    <p>Based on work done by Frank Timmermann<a class="footnote-reference" href="#id6" id="id1" name="id1"><sup>1</sup></a>. See <a class="reference" href="./license.txt">license.txt</a>.</p>
-
-    <p>Installation:</p>
-    <pre class="literal-block">
-% python setup.py install
-</pre>
+    <p>Based on work done by Frank Timmermann<a class="footnote-reference" href="#id10" id="id1" name="id1"><sup>1</sup></a>. See <a class="reference" href="./license.txt">license.txt</a>.</p>
 
     <div class="section">
       <h1><a id="overview" name="overview">Overview</a></h1>
@@ -315,17 +310,17 @@ ul.auto-toc {
       <p>Access to the del.icio.us web service API is implemented in <a class="reference" href="./pydelicious.py">pydelicious.py</a>.</p>
 
       <dl class="docutils">
-        <dt><a class="reference" href="./doc/">doc/</a></dt>
+        <dt><a class="reference" href="./tools/dlcs.py">tools/dlcs.py</a></dt>
 
-        <dd>Documentation generated from source. Generate with <tt class="docutils literal"><span class="pre">make</span> <span class="pre">doc</span></tt></dd>
+        <dd>an executable script that offers command-line access to your bookmark collection.</dd>
+
+        <dt><a class="reference" href="./doc">doc/</a></dt>
+
+        <dd>Documentation generated from source.</dd>
 
         <dt><a class="reference" href="./tests">tests/</a></dt>
 
-        <dd>Unittests, run with <tt class="docutils literal"><span class="pre">make</span> <span class="pre">test</span></tt>.</dd>
-
-        <dt><a class="reference" href="./tools/dlcs.py">tools/dlcs.py</a></dt>
-
-        <dd>an executable script that offers command-line access to your bookmark collection by caching the posts and tags XML files locally.</dd>
+        <dd>Unittest-cases.</dd>
 
         <dt><a class="reference" href="./var">var/</a></dt>
 
@@ -336,7 +331,7 @@ ul.auto-toc {
     <div class="section">
       <h1><a id="documentation" name="documentation">Documentation</a></h1>
 
-      <p>For help and TODO's, progress reports:</p>
+      <p>For help and TODO's, progress reporting:</p>
 
       <ul>
         <li>
@@ -352,23 +347,49 @@ ul.auto-toc {
 
       <ul>
         <li>
-          <p class="first">tests have encoding issues...</p>
+          <p class="first">Integrate tests/pydelicioustest.py, tests/pydelicious-test-utf-8.py</p>
         </li>
 
         <li>
-          <p class="first">do blackbox testing</p>
-        </li>
-
-        <li>
-          <p class="first">create a setup entry for dlcs? other module?</p>
+          <p class="first">blackbox tests have encoding issues...</p>
         </li>
       </ul>
     </div>
 
     <div class="section">
+      <h1><a id="configuration" name="configuration">Configuration</a></h1>
+
+      <div class="section">
+        <h2><a id="resolution" name="resolution">Resolution</a></h2>
+
+        <p>In order of preference:</p>
+
+        <blockquote>
+          <ul>
+            <li>
+              <p class="first">'.dlcs-rc' in the current working directory</p>
+            </li>
+
+            <li>
+              <p class="first">'DLCS_CONFIG' environment variable</p>
+            </li>
+
+            <li>
+              <p class="first">if those two don't exist: '~/.dlcs-rc'</p>
+            </li>
+
+            <li>
+              <p class="first">finally, value passed with '-c' or '--config' overrides all</p>
+            </li>
+          </ul>
+        </blockquote>
+      </div>
+    </div>
+
+    <div class="section">
       <h1><a id="references" name="references">References</a></h1>
 
-      <table class="docutils footnote" frame="void" id="id6" rules="none">
+      <table class="docutils footnote" frame="void" id="id10" rules="none">
         <colgroup>
           <col class="label" />
           <col />
@@ -376,7 +397,7 @@ ul.auto-toc {
 
         <tbody valign="top">
           <tr>
-            <td class="label"><a name="id6" id="id6">[1]</a></td>
+            <td class="label"><a name="id10" id="id10">[1]</a></td>
 
             <td>Google Code, <tt class="docutils literal"><span class="pre">pydelicious</span></tt> (<a class="reference" href="http://code.google.com/p/pydelicious/">http://code.google.com/p/pydelicious/</a>).</td>
           </tr>
@@ -387,7 +408,7 @@ ul.auto-toc {
 
   <div class="footer">
     <hr class="footer" />
-    Generated on: 2007-10-16.
+    Generated on: 2007-07-09.
   </div>
 </body>
 </html>

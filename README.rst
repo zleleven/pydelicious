@@ -3,31 +3,31 @@ pydelicious
 Basicly, a Python library to access del.icio.us.
 Includes shell utility to manage a local collection of bookmarks.
 
-Based on work done by Frank Timmermann\ [#]_. See `license.txt`__.
-
-Installation::
-
-    % python setup.py install
+Based on work done by Frank Timmermann\ [#]_. See `license.txt`__. 
 
 Overview
 --------
 Access to the del.icio.us web service API is implemented in `pydelicious.py`__.
 
-`doc/ <./doc/>`__
-    Documentation generated from source. Generate with ``make doc``
-`tests/ <./tests>`_
-    Unittests, run with ``make test``.
-`tools/dlcs.py <./tools/dlcs.py>`_
-    an executable script that offers command-line access to your bookmark collection by caching the posts and tags XML files locally.
-`var/ <./var>`_
+`tools/dlcs.py`__ 
+    an executable script that offers command-line access to your bookmark collection. 
+`doc/`__
+    Documentation generated from source.
+`tests/`__
+    Unittest-cases.
+`var/`__
     Test data, etc.
 
 .. __: ./license.txt
 .. __: ./pydelicious.py
+.. __: ./tools/dlcs.py
+.. __: ./doc
+.. __: ./tests
+.. __: ./var
 
 Documentation
 -------------
-For help and TODO's, progress reports:
+For help and TODO's, progress reporting:
 
 - `pydelicious.py`__
 - `dlcs.py`__
@@ -36,12 +36,26 @@ For help and TODO's, progress reports:
 .. __: ./doc/dlcs.html
 
 Other TODO's:
+    
+- Integrate tests/pydelicioustest.py, tests/pydelicious-test-utf-8.py    
+- blackbox tests have encoding issues...
 
-- tests have encoding issues...
-- do blackbox testing
-- create a setup entry for dlcs? other module?
+
+Configuration 
+-------------
+
+Resolution
+~~~~~~~~~~~~~~~~
+In order of preference:
+
+ - '.dlcs-rc' in the current working directory
+ - 'DLCS_CONFIG' environment variable
+ - if those two don't exist: '~/.dlcs-rc'
+ - finally, value passed with '-c' or '--config' overrides all
 
 References
 ----------
 
 .. [#] Google Code, ``pydelicious`` (http://code.google.com/p/pydelicious/).
+
+

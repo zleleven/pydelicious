@@ -1,3 +1,4 @@
+# No main(), no executable #!/usr/bin/env python
 """Library to access del.icio.us data via Python.
 
 :examples:
@@ -10,14 +11,14 @@
   >>> a.tags_get() # Same as:
   >>> a.request('tags/get', )
 
-  Or by calling one of the methods on the module:
+  Or by calling the 'convenience' methods on the module.
 
-  - add(user, passwd, url, description, tags = "", extended = "", dt = "", replace="no")
-  - get(user, passwd, tag="", dt="",  count = 0)
-  - get_all(user, passwd, tag = "")
-  - delete(user, passwd, url)
-  - rename_tag(user, passwd, oldtag, newtag)
-  - get_tags(user, passwd)
+  - def add(user, passwd, url, description, tags = "", extended = "", dt = "", replace="no"):
+  - def get(user, passwd, tag="", dt="",  count = 0):
+  - def get_all(user, passwd, tag = ""):
+  - def delete(user, passwd, url):
+  - def rename_tag(user, passwd, oldtag, newtag):
+  - def get_tags(user, passwd):
 
   >>> a = apiNew(user, passwd)
   >>> a.posts_add(url="http://my.com/", desciption="my.com", extended="the url is my.moc", tags="my com")
@@ -44,27 +45,43 @@ def get_popular(tag = ""):
 :License: pydelicious is released under the BSD license. See 'license.txt'
  for more informations.
 
-:todo, bvb:
+:berend:
  - Rewriting comments to english. More documentation, examples.
  - Added JSON-like return values for XML data (del.icio.us also serves some JSON...)
  - better error/exception classes and handling, work in progress.
+ - Encoding seems to be working (using UTF-8 here).
 
-:todo:
+:@todo:
  - Source code SHOULD BE ASCII!
  - More tests.
- - handling different encodings, what, how?
-   >>> pydelicious.getrss(tag="t[a]g")
-   url: http://del.icio.us/rss/tag/t[a]g
  - Parse datetimes in XML.
- - Test RSS functionality? HTML scraping doesn't work yet?
+ - Salvage and test RSS functionality?
+ - Setup not used, Still works? Should setup.py be tested?
  - API functions need required argument checks.
- - interesting functionality in other libraries (ruby, java, perl, etc)?
- - what is pydelicious used for?
- - license, readme docs via setup.py verdelen?
- - automatic releas build
+
+ * lizense einbinden und auch via setup.py verteilen
+ * readme auch schreiben und via setup.py verteilen
+ * auch auf anderen systemen testen (linux -> uni)
+ * automatisch releases bauen lassen, richtig benennen und in das
+   richtige verzeichnis verschieben.
+ * was k[o]nnen die anderen librarys denn noch so? (ruby, java, perl, etc)
+ * was wollen die, die es benutzen?
+ * wof[u]r k[o]nnte ich es benutzen?
+ * entschlacken?
 
 :done:
  * Refactored the API class, much cleaner now and functions dlcs_api_request, dlcs_parse_xml are available for who wants them.
+ * stimmt das so? muss eher noch t[a]g str2utf8 konvertieren
+   >>> pydelicious.getrss(tag="t[a]g")
+   url: http://del.icio.us/rss/tag/t[a]g
+ * requester muss eine sekunde warten
+ * __init__.py gibt die funktionen weiter
+ * html parser funktioniert noch nicht, gar nicht
+ * alte funktionen fehlen, get_posts_by_url, etc.
+ * post funktion erstellen, die auch die fehlenden attribs addiert.
+ * die api muss ich noch weiter machen
+ * requester muss die 503er abfangen
+ * rss parser muss auf viele m[o]glichkeiten angepasst werden
 """
 import sys
 import os
@@ -87,7 +104,7 @@ import feedparser
 __version__ = '0.5.0'
 __author__ = 'Frank Timmermann <regenkind_at_gmx_dot_de>' # GP: does not respond to emails
 __contributors__ = [
-    'Greg Pinero',
+	'Greg Pinero',
     'Berend van Berkum <berend+pydelicious@dotmpe.com>']
 __url__ = 'http://code.google.com/p/pydelicious/'
 __author_email__ = ""
@@ -96,7 +113,7 @@ __author_email__ = ""
 __description__ = '''pydelicious.py allows you to access the web service of del.icio.us via it's API through python.'''
 __long_description__ = '''the goal is to design an easy to use and fully functional python interface to del.icio.us. '''
 
-DLCS_OK_MESSAGES = ('done', 'ok') # Known text values of positive del.icio.us <result> answers
+DLCS_OK_MESSAGES = ('done', 'ok') # Known text values of del.icio.us <result> answers
 DLCS_WAIT_TIME = 4
 DLCS_REQUEST_TIMEOUT = 444 # Seconds before socket triggers timeout
 #DLCS_API_REALM = 'del.icio.us API'
@@ -111,7 +128,7 @@ USER_AGENT = 'pydelicious.py/%s %s' % (__version__, __url__)
 
 DEBUG = 0
 if 'DLCS_DEBUG' in os.environ:
-    DEBUG = int(os.environ['DLCS_DEBUG'])
+	DEBUG = int(os.environ['DLCS_DEBUG'])
 
 
 # Taken from FeedParser.py
@@ -130,9 +147,9 @@ if DEBUG: print >>sys.stderr, "Set socket timeout to %s seconds" % DLCS_REQUEST_
 
 ### Utility classes
 
-class _Waiter:
+class Waiter:
     """Waiter makes sure a certain amount of time passes between
-    successive calls of `Waiter()`.
+    successive calls of `Waiter.call()`.
 
     Some attributes:
     :last: time of last call
@@ -146,33 +163,34 @@ class _Waiter:
         self.waited = 0
         self.lastcall = 0;
 
-    def __call__(self):
+    def call(self):
         tt = time.time()
-        wait = self.wait
 
-        timeago = tt - self.lastcall
+        lastcall = tt - self.lastcall
 
-        if timeago < wait:
-            wait = wait - timeago
-            if DEBUG>0: print >>sys.stderr, "Waiting %s seconds." % wait
-            time.sleep(wait)
+        if self.lastcall and DEBUG>2:
+            print >>sys.stderr, "Lastcall: %s seconds ago." % lastcall
+
+        if lastcall < self.wait:
+            if DEBUG>0: print >>sys.stderr, "Waiting %s seconds." % self.wait
+            time.sleep(self.wait)
             self.waited += 1
-            self.lastcall = tt + wait
+            self.lastcall = time.time()
         else:
             self.lastcall = tt
 
-Waiter = _Waiter(DLCS_WAIT_TIME)
+Waiter = Waiter(DLCS_WAIT_TIME)
 
 class PyDeliciousException(Exception):
     '''Std. pydelicious error'''
     pass
 
 class DeliciousError(Exception):
-    """Raised when the server responds with a negative answer"""
+	"""Raised when the server responds with a negative answer"""
 
 
 class DefaultErrorHandler(urllib2.HTTPDefaultErrorHandler):
-    '''xxx, bvb: Where is this used? should it be registered somewhere with urllib2?
+    '''@xxx:bvb: Where is this used? should it be registered somewhere with urllib2?
 
     Handles HTTP Error, currently only 503.
     '''
@@ -184,10 +202,10 @@ class post(dict):
     """Post object, contains href, description, hash, dt, tags,
     extended, user, count(, shared).
 
-    xxx, bvb: Not used in DeliciousAPI
+    @xxx:bvb: Is this needed? Right now this is superfluous,
     """
-    def __init__(self, href="", description="", hash="", time="", tag="", extended="", user="", count="",
-                 tags="", url="", dt=""): # tags or tag?
+    def __init__(self, href = "", description = "", hash = "", time = "", tag = "", extended = "", user = "", count = "",
+                 tags = "", url = "", dt = ""): # tags or tag?
         self["href"] = href
         if url != "": self["href"] = url
         self["description"] = description
@@ -206,6 +224,9 @@ class post(dict):
 
 
 class posts(list):
+    """@xxx:bvb: idem as class post, python structures (dict/list) might
+    suffice or a more generic solution is needed.
+    """
     def __init__(self, *args):
         for i in args: self.append(i)
 
@@ -229,7 +250,7 @@ def str2quote(s):
     return urllib.quote_plus("".join([unichr(ord(i)).encode("utf-8") for i in s]))
 
 def dict0(d):
-    # Trims empty dict entries
+	# Trims empty dict entries
     # {'a':'a', 'b':'', 'c': 'c'} => {'a': 'a', 'c': 'c'}
     dd = dict()
     for i in d:
@@ -237,14 +258,16 @@ def dict0(d):
     return dd
 
 def delicious_datetime(str):
-    """Parse a ISO 8601 formatted string to a Python datetime ...
-    """
-    return datetime.datetime(*time.strptime(str, ISO_8601_DATETIME)[0:6])
+	"""Parse a ISO 8601 formatted string to a Python datetime ...
+	"""
+	return datetime.datetime(*time.strptime(str, ISO_8601_DATETIME)[0:6])
 
 def http_request(url, user_agent=USER_AGENT, retry=4):
     """Retrieve the contents referenced by the URL using urllib2.
 
-    Retries up to four times (default) on exceptions.
+    Retries up to four times (default) on exceptions. @xxx:(We really
+    want the data, but should we back up a little and wait a
+    few seconds?).
     """
     request = urllib2.Request(url, headers={'User-Agent':user_agent})
 
@@ -261,13 +284,13 @@ def http_request(url, user_agent=USER_AGENT, retry=4):
             raise PyDeliciousException, "%s" % e
 
         except urllib2.URLError, e:
-            # xxx: Ugly check for time-out errors
-            #if len(e)>0 and 'timed out' in arg[0]:
-            print >> sys.stderr, "%s, %s tries left." % (e, tries)
-            Waiter()
-            tries = tries - 1
-            #else:
-            #	tries = None
+            # @xxx: Ugly check for time-out errors
+			#if len(e)>0 and 'timed out' in arg[0]:
+			print >> sys.stderr, "%s, %s tries left." % (e, tries)
+			Waiter.call()
+			tries = tries - 1
+			#else:
+			#	tries = None
 
     # Give up
     raise PyDeliciousException, \
@@ -293,15 +316,15 @@ def dlcs_api_request(path, params='', user='', passwd='', throttle=True):
     This implements a minimum interval between calls to avoid
     throttling. [#]_ Use param 'throttle' to turn this behaviour off.
 
-    todo: back off on 503's (HTTPError, URLError? testing
+    @todo: back off on 503's (HTTPError, URLError? @todo: testing).
 
     Returned XML does not always correspond with given del.icio.us examples
-    [#]_.
+    @todo: (cf. help/api/... and post's attributes)
 
     .. [#] http://del.icio.us/help/api/
     """
     if throttle:
-        Waiter()
+        Waiter.call()
 
     if params:
         # params come as a dict, strip empty entries and urlencode
@@ -314,7 +337,7 @@ def dlcs_api_request(path, params='', user='', passwd='', throttle=True):
     try:
         return http_auth_request(url, DLCS_API_HOST, user, passwd, USER_AGENT)
 
-    # bvb: Is this ever raised? When?
+    # @bvb: Is this ever raised? When?
     except DefaultErrorHandler, e:
         print >>sys.stderr, "%s" % e
 
@@ -329,7 +352,7 @@ def dlcs_parse_xml(data, split_tags=False):
      {'posts': [{'url':'...','hash':'...',},],}
      {'tags':['tag1', 'tag2',]}
      {'dates': [{'count':'...','date':'...'},], 'tag':'', 'user':'...'}
-     {'result':(True, "done")}
+	 {'result':(True, "done")}
      # etcetera.
     """
 
@@ -342,7 +365,7 @@ def dlcs_parse_xml(data, split_tags=False):
     root = doc.getroot()
     fmt = root.tag
 
-    # Split up into three cases: Data, Result or Update
+	# Split up into three cases: Data, Result or Update
     if fmt in ('tags', 'posts', 'dates', 'bundles'):
 
         # Data: expect a list of data elements, 'resources'.
@@ -367,7 +390,7 @@ def dlcs_parse_xml(data, split_tags=False):
         else:
             msg = root.text
 
-        # Return {'result':(True, msg)} for /known/ O.K. messages,
+		# Return {'result':(True, msg)} for /known/ O.K. messages,
         # use (False, msg) otherwise
         v = msg in DLCS_OK_MESSAGES
         return {fmt: (v, msg)}
@@ -376,7 +399,7 @@ def dlcs_parse_xml(data, split_tags=False):
 
         # Update: "time"
         #return {fmt: root.attrib}
-        return {fmt: {'time':time.strptime(root.attrib['time'], ISO_8601_DATETIME)}}
+		return {fmt: {'time':time.strptime(root.attrib['time'], ISO_8601_DATETIME)}}
 
     else:
         raise PyDeliciousException, "Unknown XML document format '%s'" % fmt
@@ -384,7 +407,7 @@ def dlcs_parse_xml(data, split_tags=False):
 def dlcs_rss_request(tag = "", popular = 0, user = "", url = ''):
     """Handle a request for RSS
 
-    todo: translate from German
+    @todo: translate from German
 
     rss sollte nun wieder funktionieren, aber diese try, except scheisse ist so nicht schoen
 
@@ -449,10 +472,10 @@ def dlcs_rss_request(tag = "", popular = 0, user = "", url = ''):
             user = e['author']
         else:
             user = ""
-        #  time = dt ist weist auf ein problem hin
-        # die benennung der variablen ist nicht einheitlich
-        #  api senden und
-        #  xml bekommen sind zwei verschiedene schuhe :(
+#  time = dt ist weist auf ein problem hin
+# die benennung der variablen ist nicht einheitlich
+#  api senden und
+#  xml bekommen sind zwei verschiedene schuhe :(
         l.append(post(url = url, description = description, tags = tags, dt = dt, extended = extended, user = user))
     return l
 
@@ -471,15 +494,14 @@ class DeliciousAPI:
     def __init__(self, user, passwd, codec='iso-8859-1', api_request=dlcs_api_request, xml_parser=dlcs_parse_xml):
         """Initialize access to the API with ``user`` and ``passwd``.
 
-        ``codec`` sets the encoding of the arguments.
-
         The ``api_request`` and ``xml_parser`` parameters by default point to
-        functions within this package with standard implementations to
-        request and parse a resource. See ``dlcs_api_request()`` and
-        ``dlcs_parse_xml()``. Note that ``api_request`` should return a
-        file-like instance with an HTTPMessage instance under ``info()``,
-        see ``urllib2.openurl`` for more info.
-        """
+        standard implementations within this package to request and parse a
+        resource. See ``dlcs_api_request()`` and ``dlcs_parse_xml()``. Note
+        that ``api_request`` should return a file-like instance with an
+        HTTPMessage instance under ``info()``, see ``urllib2.openurl``.
+
+		``codec`` sets the encoding of the function arguments.
+		"""
         assert user != ""
         self.user = user
         self.passwd = passwd
@@ -532,7 +554,7 @@ class DeliciousAPI:
             fl = self._call_server(path, **params)
             rs = self._parse_response(fl)
 
-            # Raise an error for negative 'result' answers
+			# Raise an error for negative 'result' answers
             if type(rs) == dict and rs == 'result' and not rs['result'][0]:
                 errmsg = ""
                 if len(rs['result'])>0:
@@ -542,13 +564,14 @@ class DeliciousAPI:
             return rs
 
     def request_raw(self, path, **params):
-        """Calls the path in the API, returns the filehandle. Returned
+        """Calls the path in the API, returns the filehander. Returned
         file-like instances have an ``HTTPMessage`` instance with HTTP header
-        information available. Use ``filehandle.info()`` or refer to the
+        information available. Use ``filehandler.info()`` or refer to the
         ``urllib2.openurl`` documentation.
         """
-        # see `request()` on how the response can be handled
+		# see `request()` on how the response can be handled
         return self._call_server(path, **params)
+
 
     ### Explicit declarations of API paths, their parameters and docs
 
@@ -580,7 +603,7 @@ class DeliciousAPI:
         ::
 
             <update time="CCYY-MM-DDThh:mm:ssZ">
-        """
+		"""
         return self.request("posts/update", **kwds)
 
     def posts_dates(self, tag="", **kwds):
@@ -706,37 +729,13 @@ class DeliciousAPI:
         """
         return self.request("tags/bundles/delete", bundle=bundle, **kwds)
 
-    ### Utils
-
-    # Lookup table for del.icio.us url-path to DeliciousAPI method.
-    paths = {
-        'tags/get': tags_get,
-        'tags/rename': tags_rename,
-        'posts/update': posts_update,
-        'posts/dates': posts_dates,
-        'posts/get': posts_get,
-        'posts/recent': posts_recent,
-        'posts/all': posts_all,
-        'posts/add': posts_add,
-        'posts/delete': posts_delete,
-        'tags/bundles/all': bundles_all,
-        'tags/bundles/set': bundles_set,
-        'tags/bundles/delete': bundles_delete,
-    }
-
-    def get_url(self, url):
-        """Return the del.icio.us url at which the HTML page with posts for
-        ``url`` can be found.
-        """
-        return "http://del.icio.us/url/?url=%s" % (url,)
-
 
 ### Convenience functions on this package
 
 def apiNew(user, passwd):
     """creates a new DeliciousAPI object.
     requires user(name) and passwd
-    """
+	"""
     return DeliciousAPI(user=user, passwd=passwd)
 
 def add(user, passwd, url, description, tags="", extended="", dt="", replace="no"):
@@ -744,7 +743,7 @@ def add(user, passwd, url, description, tags="", extended="", dt="", replace="no
 
 def get(user, passwd, tag="", dt="",  count = 0):
     posts = apiNew(user, passwd).posts_get(tag=tag,dt=dt)
-    if count != 0: posts = posts["posts"][0:count]
+    if count != 0: posts = posts[0:count]
     return posts
 
 def get_all(user, passwd, tag=""):
@@ -760,17 +759,17 @@ def get_tags(user, passwd):
     return apiNew(user=user, passwd=passwd).tags_get()
 
 
-### RSS functions bvb: still working...?
+### RSS functions @bvb: still working...?
 def getrss(tag="", popular=0, url='', user=""):
-    """get posts from del.icio.us via parsing RSS (bvb:or HTML)
+    """get posts from del.icio.us via parsing RSS @bvb[or HTML]
 
-    todo: not tested
+	@bvb[not tested]
 
     tag (opt) sort by tag
     popular (opt) look for the popular stuff
     user (opt) get the posts by a user, this striks popular
     url (opt) get the posts by url
-    """
+	"""
     return dlcs_rss_request(tag=tag, popular=popular, user=user, url=url)
 
 def get_userposts(user):
@@ -786,7 +785,7 @@ def get_popular(tag = ""):
     return getrss(tag = tag, popular = 1)
 
 
-### TODO: implement JSON fetching
+### @TODO: JSON functions
 def json_posts(user, count=15):
     """http://del.icio.us/feeds/json/mpe
     http://del.icio.us/feeds/json/mpe/art+history
