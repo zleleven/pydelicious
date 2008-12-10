@@ -1,0 +1,66 @@
+#summary How to use pydelicious from the command-line using dlcs 
+#labels 
+
+= Command-Line del.icio.us =
+
+`dlcs` is an executable script that acts as a text-user-interface [TUI] in front
+of pydelicious.DeliciousAPI. It offers some facilities to get data from your 
+online bookmark collection and to perfom operations. See:
+
+    % dlcs --help
+
+The tool enables quick access but the server communication may be slow and
+when doing multiple expensive requests del.icio.us may throttle you and
+return 503's. This all depends on your collection size (posts/tags/bundles)
+ofcourse. In any case, the post and tag lists are stored locally and some
+changes to your collection may not be noticed until you clear this cache
+since posts/update does not notice any edits.
+
+== Quickstart ==
+Just start `dlcs` using:
+
+    % dlcs -u <username>
+
+Post any URL using:
+
+    % dlcs postit <URL>
+
+== Configuration ==
+Your username and password can be stored in an INI formatted configuration
+file under section name 'dlcs'. The default location is ~/.dlcs-rc
+but this can be changed using command line options. If no username or
+password are provided `dlcs` will use your login name and prompt for the
+password.
+
+== Limitation ==
+- Bundle sizes are restricted by the maximum URL size [xxx:length?], the
+  del.icio.us interface allows bigger bundles.
+
+== Integration ==
+When using curses based browsers you may have to miss the javascript
+bookmarklets since most TUI browsers don't support these. That is why dlcs 
+has a command `postit` that takes the URL and fires up your favorite editor 
+to offer the same functionality. E.g., 
+`dlcs postit http://code.google.com/p/pydelicious/` might present you a temporary file
+with something like:
+
+  [http://code.google.com/p/pydelicious/]
+  extended =
+  hash = fed81a2bedd28f104c39525760fb748e
+  description = pydelicious - Google Code
+  replace = Yes
+  tag = pydelicious python xml api 2006 http:del.icio.us code projects tags web 2007 2008
+  meta = 2c6c592bc80d78852d81c1973966b9c1
+  time = 2006-10-25T00:39:11Z
+  shared = Yes
+
+To bookmark HTTP URLs with lynx, put the following line in your lynx.cfg::
+
+    EXTERNAL:http:dlcs postit %s
+
+For the elinks browser, create a uri_passing rule in the configuration file.
+Something like the following::
+
+    set document.uri_passing.dlcs = "bash -c \"dlcs postit %c\""
+
+
