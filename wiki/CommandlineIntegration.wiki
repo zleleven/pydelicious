@@ -3,6 +3,9 @@
 
 = Command-Line del.icio.us =
 
+XXX: dlcs has no installer and is not integrated into pydelicious' installer.
+     replace 'dlcs' below with the path to dlcs.py.
+
 `dlcs` is an executable script that acts as a text-user-interface [TUI] in front
 of pydelicious.DeliciousAPI. It offers some facilities to get data from your 
 online bookmark collection and to perfom operations. See:
