@@ -42,8 +42,7 @@ password are provided `dlcs` will use your login name and prompt for the
 password.
 
 == Limitation ==
-- Bundle sizes are restricted by the maximum URL size [xxx:length?], the
-  del.icio.us interface allows bigger bundles.
+- Bundle sizes are restricted by the maximum URL size [xxx:length?], the del.icio.us interface allows bigger bundles.
 
 == Integration ==
 When using curses based browsers you may have to miss the javascript
