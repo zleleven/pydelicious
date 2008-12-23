@@ -17,9 +17,10 @@ online bookmark collection and to perfom operations. See:
 The tool enables quick access but the server communication may be slow and
 when doing multiple expensive requests del.icio.us may throttle you and
 return 503's. This all depends on your collection size (posts/tags/bundles)
-ofcourse. In any case, the post and tag lists are stored locally and some
-changes to your collection may not be noticed until you clear this cache
-since posts/update does not notice any edits.
+ofcourse. The post and tag lists are stored locally and these caches must be
+updated in one run. For nettiquette's sake, prevent unnecesary refreshes 
+using the -C flag. In the future, refreshing the cache should get more 
+fine-grained.
 
 == Quickstart ==
 Just start `dlcs` using:
@@ -39,7 +40,8 @@ Your username and password can be stored in an INI formatted configuration
 file under section name 'dlcs'. The default location is ~/.dlcs-rc
 but this can be changed using command line options. If no username or
 password are provided `dlcs` will use your login name and prompt for the
-password.
+password. Following the quickstart section above, this file should be created
+automaticly.
 
 == Limitation ==
 - Bundle sizes are restricted by the maximum URL size [xxx:length?], the del.icio.us interface allows bigger bundles.
@@ -49,7 +51,7 @@ When using curses based browsers you may have to miss the javascript
 bookmarklets since most TUI browsers don't support these. That is why dlcs 
 has a command `postit` that takes the URL and fires up your favorite editor 
 to offer the same functionality. E.g., 
-`dlcs postit http://code.google.com/p/pydelicious/` might present you a temporary file
+`dlcs postit http://code.google.com/p/pydelicious/` should present you a temporary file
 with something like:
 
 {{{
@@ -63,6 +65,9 @@ with something like:
   time = 2006-10-25T00:39:11Z
   shared = Yes
 }}}
+
+If a URL has already been posted that data is fetched from the server and
+included so it can be modified.
 
 To bookmark HTTP URLs with lynx, put the following line in your lynx.cfg::
 
