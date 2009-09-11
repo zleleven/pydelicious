@@ -8,7 +8,6 @@ The version 1 API:
  * does all calls via HTTP GET
  * returns all answers in XML
  * uses XML root elements: posts, tags, bundles, dates, update and result.
- * [I/O Encoding unknown, waiting for customer service to respond.]
 
 The del.icio.us API documention is found at http://del.icio.us/help/api/. 
 Erreta are given in the details section below.
