@@ -1,5 +1,4 @@
-#summary How to use pydelicious from the command-line using dlcs 
-#labels 
+#summary How to use pydelicious from the command-line using dlcs
 
 = Command-Line del.icio.us =
 
@@ -33,6 +32,23 @@ Post any URL using:
 
 {{{
     % dlcs postit <URL>
+}}}
+
+Other often used commands:
+
+- rename a tag 
+{{{
+   % dlcs rename oldtag newtag newtag2
+}}}
+
+- find a tag by sub-string 
+{{{
+   % dlcs findtags tagpart
+}}}
+
+- find posts for tag 
+{{{
+   % dlcs tagged mytag
 }}}
 
 == Configuration ==
@@ -81,4 +97,3 @@ Something like the following::
 {{{
     set document.uri_passing.dlcs = "bash -c \"dlcs postit %c\""
 }}}
-
