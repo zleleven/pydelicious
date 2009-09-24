@@ -2,9 +2,6 @@
 
 = Command-Line del.icio.us =
 
-XXX: dlcs has no installer and is not integrated into pydelicious' installer.
-Replace 'dlcs' below with the path to dlcs.py.
-
 `dlcs` is an executable script that acts as a text-user-interface [TUI] in front
 of pydelicious.DeliciousAPI. It offers some facilities to get data from your 
 online bookmark collection and to perfom operations. See:
@@ -13,10 +10,12 @@ online bookmark collection and to perfom operations. See:
     % dlcs --help
   }}}
 
-The tool enables quick access but the server communication may be slow and
-when doing multiple expensive requests del.icio.us may throttle you and
+The tool enables quick access but the server communication might be slow and
+when doing multiple expensive requests del.icio.us could throttle you and
 return 503's. This all depends on your collection size (posts/tags/bundles)
-ofcourse. The post and tag lists are stored locally and these caches must be
+ofcourse. 
+
+The post and tag lists are stored locally and these caches must be
 updated in one run. For nettiquette's sake, prevent unnecesary refreshes 
 using the -C flag. In the future, refreshing the cache should get more 
 fine-grained.
@@ -56,11 +55,11 @@ Your username and password can be stored in an INI formatted configuration
 file under section name 'dlcs'. The default location is ~/.dlcs-rc
 but this can be changed using command line options. If no username or
 password are provided `dlcs` will use your login name and prompt for the
-password. Following the quickstart section above, this file should be created
-automaticly.
+password. Following the quickstart described above, this file should have been created
+automaticly. *Your del.icio.us password is saved there in plain text*, apply whatever r/w control you require.
 
 == Limitation ==
-- Bundle sizes are restricted by the maximum URL size [xxx:length?], the del.icio.us interface allows bigger bundles.
+- Bundle sizes are restricted by the maximum URL size [xxx:length?], the del.icio.us web interface allows bigger bundles.
 
 == Integration ==
 When using curses based browsers you may have to miss the javascript
