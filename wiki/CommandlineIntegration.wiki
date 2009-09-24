@@ -21,33 +21,34 @@ using the -C flag. In the future, refreshing the cache should get more
 fine-grained.
 
 == Quickstart ==
-Just start `dlcs` using:
+First-time run `dlcs`:
 
 {{{
     % dlcs -u <username>
 }}}
 
-Post any URL using:
+Then post any URL using:
 
 {{{
     % dlcs postit <URL>
 }}}
 
-Other often used commands:
-
-- rename a tag 
+Or use some other often used command like:
 {{{
-   % dlcs rename oldtag newtag newtag2
-}}}
 
-- find a tag by sub-string 
-{{{
-   % dlcs findtags tagpart
-}}}
+$ dlcs help rename
+rename a tag to one or more tags.
 
-- find posts for tag 
-{{{
-   % dlcs tagged mytag
+        % dlcs rename oldtag newtag(s)
+
+$ dlcs help findtags
+Search all tags for (a part of) a tag.
+ 
+$ dlcs help tagged
+Request all posts for a tag or overlap of tags. Print URLs.
+
+        % dlcs tagged tag [tag2 ...]
+
 }}}
 
 == Configuration ==
