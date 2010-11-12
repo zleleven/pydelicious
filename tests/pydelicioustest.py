@@ -36,6 +36,7 @@ def http_request_dummy(url, user_agent=None, retry=0, opener=None):
     if url in test_data:
         fn = test_data[url]
         if not os.path.isfile(fn): 
+            print "Requesting new file for test data: %s (%s)" % (url, fn)
             fetch_file(url, fn)
         return open(fn)
 
@@ -48,17 +49,20 @@ def http_request_dummy(url, user_agent=None, retry=0, opener=None):
 pydelicious.http_request = http_request_dummy
 
 
-def api_request_dummy(path, params='', user='', passwd='', opener=None):
+def api_request_dummy(user='', passwd=''):
 
-    """Instead of mimicking the server responses this will return a tuple
-    including the url.
+    """
+    Return a builder for given credentials.
     """
 
-    if params:
-        url = "%s/%s?%s" % (pydelicious.DLCS_API, path, urllib.urlencode(params))
-    else:
-        url = "%s/%s" % (pydelicious.DLCS_API, path)
-    return url, user, passwd
+    class Build:
+        def open(self, req):
+            r = StringIO()
+            setattr(r, 'req', req)
+            setattr(r, 'user', user)
+            setattr(r, 'passwd', passwd)
+            return r
+    return Build
 
 def parser_dummy(data, split_tags=False):
     return {'not-parsed':data}
@@ -166,10 +170,10 @@ class DeliciousApiUnitTest(PyDeliciousTester):
 
     def setUp(self):
         self.api_utf8 = pydelicious.DeliciousAPI('testUser', 'testPwd',
-            'utf-8', api_request=api_request_dummy, xml_parser=parser_dummy)
+            'utf-8', build_opener=api_request_dummy, parse_response=parser_dummy)
 
         self.api_latin1 = pydelicious.DeliciousAPI('testUser', 'testPwd',
-            'latin-1', api_request=api_request_dummy, xml_parser=parser_dummy)
+            'latin-1', build_opener=api_request_dummy, parse_response=parser_dummy)
 
     def test_param_encoding(self):
         a = self.api_utf8
@@ -230,15 +234,18 @@ class DeliciousApiUnitTest(PyDeliciousTester):
 
 class DeliciousErrorTest(PyDeliciousTester):
 
-    def test_raiseFor(self):
+    def test_for_message(self):
+        def _raise(*a,**k):
+            raise pydelicious.DeliciousItemExistsError.for_message(*a,**k)
         self.assertRaises(
             pydelicious.DeliciousItemExistsError,
-            pydelicious.DeliciousError.raiseFor, 'item already exists',
+            _raise, 'item already exists',
                 'path/add', **{'url':'urn:system'});
+        def _raise(*a,**k):
+            raise pydelicious.DeliciousError.for_message(*a,**k)
         self.assertRaises(
             pydelicious.DeliciousError,
-            pydelicious.DeliciousError.raiseFor, 'other error', 'path/get'
-            );
+            _raise, 'other error', 'path/get');
 
 
 __testcases__ = (TestGetrss, TestBug, TestFeeds, DeliciousApiUnitTest, DeliciousErrorTest)#TestWaiter, )

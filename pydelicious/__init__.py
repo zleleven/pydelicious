@@ -44,10 +44,10 @@ except ImportError:
 
 try:
     # Python >= 2.5
-    from elementtree.ElementTree import parse as parse_xml
+    from elementtree.ElementTree import parse
     logging.debug("Using ``elementtree.ElementTree``. ")
 except ImportError:
-    from xml.etree.ElementTree import parse as parse_xml
+    from xml.etree.ElementTree import parse
     logging.debug("Using ``xml.etree.ElementTree``. ")
 
 try:
@@ -60,7 +60,7 @@ except ImportError:
 ### Static config
 
 __rcs_id__ = "$Id$"[3:-1]
-__version__ = '0.7.0'
+__version__ = '0.7'
 __author__ = 'Frank Timmermann <regenkind_at_gmx_dot_de>'
     # GP: does not respond to emails
 __contributors__ = [
@@ -106,8 +106,6 @@ if 'DLCS_DEBUG' in os.environ:
 
 ### Constants specific to delicious.com
 
-DLCS_OK_MESSAGES = ('done', 'ok')
-"Known text values of positive del.icio.us <result/> answers"
 DLCS_WAIT_TIME = 4
 "Time to wait between API requests"
 DLCS_REQUEST_TIMEOUT = 444
@@ -118,6 +116,10 @@ DLCS_API_PATH = 'v1'
 DLCS_API = "https://%s/%s" % (DLCS_API_HOST, DLCS_API_PATH)
 DLCS_RSS = 'http://del.icio.us/rss/'
 DLCS_FEEDS = 'http://feeds.delicious.com/v2/'
+DLCS_OK_MESSAGES = ('done', 'ok')
+"Known text values of positive del.icio.us <result/> answers"
+DLCS_LIST_RESOURCES = ('tags', 'posts', 'dates', 'bundles')
+DLCS_TIME_ATTR = ('time', 'dt', 'update')
 
 
 ### Misc. frontend vars and constants
@@ -199,15 +201,16 @@ class PyDeliciousException(Exception):
     " Standard pydelicious error. "
 
 class PyDeliciousThrottled(Exception):
-    " Raised when server is unwilling to service request. "
+    " The server is unwilling to service request. "
 
 class PyDeliciousUnauthorized(Exception): pass
 
 class DeliciousError(Exception):
-    " Raised when server reports error upon API request. "
+    " The server reported an error upon API request. "
 
     @staticmethod
     def for_message(error_string, path, **params):
+        " Raise for known backend response. "
         if error_string == 'item already exists':
             return DeliciousItemExistsError(params['url'])
         else:
@@ -224,6 +227,9 @@ class DeliciousHTTPErrorHandler(urllib2.HTTPDefaultErrorHandler):
     def http_error_401(self, req, fp, code, msg, headers):
         raise PyDeliciousUnauthorized, "Check credentials."
 
+    def http_error_999(self, req, fp, code, msg, headers):
+        return self.http_error_503(req, fp, code, msg, headers)
+
     def http_error_503(self, req, fp, code, msg, headers):
         errmsg = "Try again later."
         if 'Retry-After' in headers:
@@ -234,33 +240,67 @@ class DeliciousHTTPErrorHandler(urllib2.HTTPDefaultErrorHandler):
 ### Data instance wrapper classes
 
 class DeliciousAPIResource:
-
-    def __init__(self, api):
+    def __init__(self, api, **props):
         self.api = api
+        self.data = props
 
-    def from_response_data(clss, api, data={}):
-        res = clss(api, **data)
-        return res
-    from_response_data = classmethod(from_response_data)        
+    def __getitem__(self, key):
+        print self.api
+        print self.data
+        return self.data[key]
 
     def __str__(self):
-        return "%s:%s" % (self.__class__.__name__, self.api)
+        return "%s;%s:%s" % (self.__class__.__name__, 
+                ';'.join(["%s=%s" %(k, self.data[k]) for k in self.data]),
+                self.api )
 
     def _date(self, dt):
         dst = dt[-1] # TODO: tz
-        logging.warning("todo: tz %s" % dt)
+        #logging.warning("todo: tz %s" % dt)
         return datetime.datetime(*dt[0:6])
 
-class DeliciousDone(DeliciousAPIResource): pass 
+    def from_response_data(clss, api, kind, data):
+        if kind == 'result':
+            if not data in DLCS_OK_MESSAGES:
+                # Raise error
+                raise DeliciousError.for_message(msg or 'Unknown error',
+                        path, **params)
+            return clss( api, *data )
+
+        elif kind == 'update':
+            getter = lambda self: self._date( self.data['time'] )
+            setattr( clss, 'time', property( getter ))
+            return clss( api, **data )
+
+        elif kind in DLCS_LIST_RESOURCES:
+            list_props, list_data = data
+            for p in list_props:
+                if p in DLCS_TIME_ATTR:
+                    getter = lambda self: self._date(self.data[p])
+                else:    
+                    getter = lambda self: self.data[p]
+                setattr( clss, p, property( getter ))
+            setattr( clss, kind, lambda self: self.list_data )
+            return clss( api, list_data, **list_props )
+
+    from_response_data = classmethod(from_response_data)
+
+class DeliciousDone(DeliciousAPIResource):
+    def __init__(self, api, message, **props):
+        DeliciousAPIResource.__init__(self, api, **props)
+        self.message = message
+
+class DeliciousUpdate(DeliciousAPIResource): 
+    def __str__(self):
+        return "Last update for %s: %s" % (self.api, self.isoformat())
+
+    def isoformat(self):
+        return self.time.strftime(ISO_8601_DATETIME)
 
 class DeliciousListResource(DeliciousAPIResource):
-
-    def __init__(self, api, list_data):
-        DeliciousAPIResource.__init__(self, api)
+    def __init__(self, api, list_data, **list_props):
+        DeliciousAPIResource.__init__(self, api, **list_props)
         self.list_data = list_data
-
-    def __str__(self):
-        return "%s, %i items (%s)" % (self.__class__.__name__, len(self), self.api)
 
     def __len__(self):
         return len(self.list_data)
@@ -268,53 +308,29 @@ class DeliciousListResource(DeliciousAPIResource):
     def __iter__(self):
         return iter(self.list_data)
 
-class DeliciousPostsList(DeliciousListResource):
-    def __init__(self, api, posts=[], dt=None, tag=None, user=None):
-        DeliciousListResource.__init__(self, api, posts)
-        self.date = self._date(dt)
-        self.tag = tag
-        self.user = user
-
     def __str__(self):
-        list_str = DeliciousListResource.__str__(self)
-        return list_str + ", last updated %s" % self.date.isoformat()
+        return "%s, %i items;%s:%s" % (self.__class__.__name__, len(self), 
+                ';'.join(["%s=%s" %(k, self.data[k]) for k in self.data]),
+                self.api )
 
+class DeliciousPostsList(DeliciousListResource): pass
 
-class DeliciousRecentPosts(DeliciousPostsList):
-    def __init__(self, api, tag=None, user=None, posts=[]):
-        print tag, user
-        DeliciousPostsList.__init__(self, api, posts)
+    #    def __str__(self):
+    #        list_str = DeliciousListResource.__str__(self)
+    #        return list_str + ", last updated %s" % self.date.isoformat()
 
+class DeliciousRecentPosts(DeliciousPostsList): pass
 class DeliciousChangeManifest(DeliciousPostsList): pass
-    
-class DeliciousUpdate(DeliciousAPIResource): 
-    def __init__(self, api, update=None):
-        DeliciousAPIResource.__init__(self, api)
-        self.time = self._date(update['time'])
-
-    def __str__(self):
-        return "Last update for %s: %s" % (self.api, self.isoformat())
-
-    def isoformat(self):
-        return self.time.strftime(ISO_8601_DATETIME)
-        return time.strftime(ISO_8601_DATETIME, self.time, )
-
-class DeliciousTagsList(DeliciousListResource):
-    def __init__(self, api, tags=[]):
-        DeliciousListResource.__init__(self, api, tags)
-
-class DeliciousDatesList(DeliciousListResource):
-    def __init__(self, api, dates=[]):
-        DeliciousListResource.__init__(self, api, dates)
-
+class DeliciousTagsList(DeliciousListResource): pass
+class DeliciousDatesList(DeliciousListResource): pass
 class DeliciousUser(DeliciousAPIResource): pass 
-class DeliciousPost(DeliciousAPIResource):
+class DeliciousPost(DeliciousAPIResource): pass
 
-    def href(self, url):
-        """Return the del.icio.us url at which the HTML page with posts for
-        ``url`` can be found.
-        """
-        return "http://del.icio.us/url/?url=%s" % (url,)
+#    def href(self, url):
+#        """Return the del.icio.us url at which the HTML page with posts for
+#        ``url`` can be found.
+#        """
+#        return "http://del.icio.us/url/?url=%s" % (url,)
 
 
 
@@ -462,90 +478,50 @@ def dlcs_encode_params(params, usercodec=PREFERRED_ENCODING):
 
     return params
 
-
 def dlcs_parse_xml(data, split_tags=False, success_msgs=DLCS_OK_MESSAGES):
-    """Parse any del.icio.us XML API response document and return Python data structure.
-
-    Recognizes all XML document formats as returned by the version 1 API and
-    translates to a JSON-like data structure (dicts 'n lists).
-
-    Returned instance is always a dictionary. Examples::
-
-     {'posts': [{'url':'...','hash':'...',},],}
-     {'tags':['tag1', 'tag2',]}
-     {'dates': [{'count':'...','date':'...'},], 'tag':'', 'user':'...'}
-     {'result':(True, "done")}
-     # etcetera.
-
-    Some responses will take the form of a `result` message, i.e.::
-
-
-        <result code="..." />
-
-    or::
-
-        <result>...</result>
-
-    These are parsed to ``{'result':(Boolean, MessageString)}``.
-    """
-    # TODO: split_tags is not implemented
-
-    log.log(DEBUG_PARSE, "dlcs_parse_xml: parsing %s bytes.", len(data))
+    " Parse delicious XML to dicts 'n lists.  "
 
     if not hasattr(data, 'read'):
         data = StringIO(data)
+    #log.log(DEBUG_PARSE, "dlcs_parse_xml: parsing %s bytes.", len(data.read()))
 
-    doc = parse_xml(data)
+    doc = parse(data)
     root = doc.getroot()
     fmt = root.tag
 
     log.log(DEBUG_PARSE, "dlcs_parse_xml: found '%s' document. ", fmt)
 
-    timekeys = ('time', 'dt')
     scandate = lambda dt: time.strptime(dt, ISO_8601_DATETIME)
 
-    # Split up into three cases: Data, Result or Update
-    if fmt in ('tags', 'posts', 'dates', 'bundles'):
-
-        # Data: expect a list of data elements, 'resources'.
-        # Use `fmt` (without last 's') to find data elements, elements
-        # don't have contents, attributes contain all the data we need:
-        # append to list
-        elist = [el.attrib for el in doc.findall(fmt[:-1])]
-        for el in elist:
-            for tk in timekeys:
-                if tk in el:
-                    el[tk] = scandate(el[tk])
-
-        # Return list in dict, use tagname of rootnode as keyname.
-        data = {fmt: elist}
-
+    # Split up into three cases: Data (list), Result or Update
+    if fmt in DLCS_LIST_RESOURCES:
+        # Data: expect a list of data elements, dicts with properties.
+        # Use `fmt` (without last 's') to find data elements.
+        # Theres no contents, attributes contain all the data we need;
+        list_data = [el.attrib for el in doc.findall(fmt[:-1])]
+        for item in list_data:
+            for k in DLCS_TIME_ATTR:
+                if k in item:
+                    item[k] = scandate(item[k])
+                elif k == 'tags':
+                    item[k] = [t.strip() for t in e[k].strip().split(' ')]
         # Root element might have attributes too, append dict.
-        extra = root.attrib
-        for tk in timekeys:
-            if tk in extra:
-                extra[tk] = scandate(extra[tk])
-        data.update(extra)
-
-        return data
+        list_props = root.attrib
+        for tk in DLCS_TIME_ATTR:
+            if tk in list_props:
+                list_props[tk] = scandate(list_props[tk])
+        return fmt, (list_props, list_data)
 
     elif fmt == 'result':
-
         # Result: answer to operations
         if root.attrib.has_key('code'):
             msg = root.attrib['code']
         else:
             msg = root.text
-
-        # XXX: Return {'result':(True, msg)} for /known/ O.K. messages,
-        # use (False, msg) otherwise. Move this to DeliciousAPI?
-        v = msg in success_msgs
-        return {fmt: (v, msg)}
+        return fmt, msg            
 
     elif fmt == 'update':
-
-        print 'xml',  root.attrib['time']
-        return {fmt: {'time': scandate(root.attrib['time']) }}
+        return fmt, { 'time': scandate(root.attrib['time']) }
 
     else:
         raise PyDeliciousException, "Unknown XML document format '%s'" % fmt
@@ -731,10 +707,9 @@ class DeliciousAPI:
             codec=PREFERRED_ENCODING,
             api_path=DLCS_API,
             throttle=Waiter,
-            wrapdata=True, 
+            parse_response=dlcs_parse_xml,
             build_opener=dlcs_api_opener, 
-            encode_params=dlcs_encode_params,
-            parse_response=dlcs_parse_xml,):
+            encode_params=dlcs_encode_params,):
 
         """
         Initialize access to the API for `user` with `passwd`, along with the
@@ -767,12 +742,11 @@ class DeliciousAPI:
         self.api_path = api_path
         self.codec = codec
         self.throttle = throttle
-        self.wrapdata = wrapdata
 
         assert callable(encode_params)
         self.encode_params = encode_params
         assert callable(parse_response)
-        self.parse_response = parse_response 
+        self.parse_response = parse_response
         self.reload(user, passwd, build_opener=build_opener)
         
     def reload(self, user, passwd, build_opener=dlcs_api_opener):
@@ -782,7 +756,6 @@ class DeliciousAPI:
         self.user = user
         self.passwd = passwd
         self.opener = build_opener(user, passwd)
-
 
     ### Core functionality
 
@@ -809,10 +782,6 @@ class DeliciousAPI:
 
         return fl
 
-    paths = {
-    }
-    " Registry of function, return type for paths in the delicious.com API. "
-
     def api_handler(api_path, return_type, docstr=''):
         """
         API-call method factory. This is a sort of 'decorator' for `request`,
@@ -832,26 +801,12 @@ class DeliciousAPI:
                 return fl
 
             else:
-                rs = self.parse_response(fl.read())
-
-                # Raise error
-                if 'result' in rs and not rs['result'][0]:
-                    errmsg = rs['result'].get(1, 'Unknown error.')
-                    raise DeliciousError.for_message(errmsg, path, **params)
-
-                if self.wrapdata:
-                    return return_type.from_response_data(self, rs)
-                else:
-                    return rs    
+                kind, data = self.parse_response(fl.read())
+                return return_type.from_response_data(self, kind, data)
 
         api_request.__doc__ = docstr
-        #clss.paths[api_path] = api_request, return_type
         return api_request
 #    api_handler = classmethod(api_handler)
-
-
-    def get_method(self, path):
-        return getattr(self, self.paths[path][1])
 
     def __repr__(self):
         return "DeliciousAPI(%s)" % self.user
@@ -864,27 +819,26 @@ class DeliciousAPI:
 
     tags_get = api_handler('tags/get', DeliciousTagsList,
         """Returns a list of tags and the number of times it is used by the
-        user.
-        ::
+        user:: 
 
             <tags>
                 <tag tag="TagName" count="888">
+
         """)
 
     tags_delete = api_handler('tags/delete', DeliciousDone,
         """Delete an existing tag.
 
-        &tag={TAG}
+        &tag=TAG
             (required) Tag to delete
         """)
 
     tags_rename = api_handler('tags/rename', DeliciousDone,
-        """Rename an existing tag with a new tag name. Returns a `result`
-        message or raises an ``DeliciousError``.
+        """Rename an existing tag with a new tag name.
 
-        &old={TAG}
+        &old=TAG
             (required) Tag to rename.
-        &new={TAG}
+        &new=TAG
             (required) New tag name.
         """)
 
