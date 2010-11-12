@@ -1147,7 +1147,7 @@ def cached_posts(conf, dlcs, noupdate=False):
         cache_file(posts_file, dlcs.posts_all(_raw=True))
     else:
         if not noupdate:
-            lastupdate = dlcs.posts_update()['update']['time']
+            lastupdate = dlcs.posts_update()['time']
             if time.gmtime(getmtime(posts_file)) < lastupdate:
                 print >>sys.stderr, "cached_posts: Updating post list..."
                 cache_file(posts_file, dlcs.posts_all(_raw=True))
